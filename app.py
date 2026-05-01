@@ -112,6 +112,30 @@ class ReaderController:
             }
 
 
+def _read_int_env(name: str, default: int, minimum: int) -> int:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    try:
+        return max(int(raw), minimum)
+    except ValueError:
+        LOGGER.warning("Invalid integer value for %s=%r. Using default %s.", name, raw, default)
+        return default
+
+
+def _read_bool_env(name: str, default: bool) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    normalized = raw.strip().lower()
+    if normalized in {"1", "true", "yes", "on"}:
+        return True
+    if normalized in {"0", "false", "no", "off"}:
+        return False
+    LOGGER.warning("Invalid boolean value for %s=%r. Using default %s.", name, raw, default)
+    return default
+
+
 def main() -> None:
     base_dir = Path(__file__).resolve().parent
     data_dir = base_dir / "data"
@@ -123,8 +147,15 @@ def main() -> None:
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     )
 
+    full_refresh_interval = _read_int_env("EPAPER_FULL_REFRESH_INTERVAL", default=4, minimum=1)
+    sleep_between_updates = _read_bool_env("EPAPER_SLEEP_BETWEEN_UPDATES", default=False)
+
     storage = Storage(data_dir=data_dir)
-    display = EPaperDisplay(preview_path=data_dir / "last_render.png")
+    display = EPaperDisplay(
+        preview_path=data_dir / "last_render.png",
+        full_refresh_interval=full_refresh_interval,
+        sleep_between_updates=sleep_between_updates,
+    )
     controller = ReaderController(storage=storage, display=display)
     buttons = ButtonController(
         on_previous=controller.previous_page,

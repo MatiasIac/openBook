@@ -13,6 +13,43 @@ Simple Python app for a Raspberry Pi Zero 2 W with a WeAct 4.2" ePaper display (
 - Reading progress persisted in `data/state.json`.
 - Resume from last saved page on restart.
 
+## Hardware Required
+
+- Raspberry Pi Zero 2 W
+- WeAct 4.2 inch ePaper module (Waveshare-compatible `epd4in2_V2`)
+- 2 momentary push buttons
+- Jumper wires (female-female or female-male depending on your header setup)
+
+## Wiring
+
+### Buttons
+
+The code uses internal pull-ups (`GPIO.PUD_UP`), so each button is wired between GPIO and GND:
+
+- Previous page button: `GPIO27` (physical pin `13`) -> button -> `GND`
+- Next page button: `GPIO22` (physical pin `15`) -> button -> `GND`
+
+### ePaper Module (4.2 inch WeAct, Waveshare-compatible SPI wiring)
+
+This project uses the default SPI/GPIO mapping expected by `waveshare_epd` on Raspberry Pi:
+
+| ePaper Pin | Raspberry Pi Signal | BCM GPIO | Physical Pin |
+|---|---|---:|---:|
+| VCC | 3.3V power | - | 1 (or 17) |
+| GND | Ground | - | 6 (or any GND) |
+| DIN | SPI MOSI | GPIO10 | 19 |
+| CLK | SPI SCLK | GPIO11 | 23 |
+| CS | SPI CE0 | GPIO8 | 24 |
+| DC | Data/Command | GPIO25 | 22 |
+| RST | Reset | GPIO17 | 11 |
+| BUSY | Busy/Ready | GPIO24 | 18 |
+
+Notes:
+
+- Enable SPI on the Pi (`sudo raspi-config` -> Interface Options -> SPI -> Enable).
+- Keep button and display grounds common (same GND reference).
+- If your specific WeAct board labels or pinout differ, match by signal name (`DIN/CLK/CS/DC/RST/BUSY`) and update driver config only if required by your hardware variant.
+
 ## Project Layout
 
 ```text
@@ -58,6 +95,8 @@ Environment variables:
 - `EPAPER_READER_HOST` (default `0.0.0.0`)
 - `EPAPER_READER_PORT` (default `8000`)
 - `LOG_LEVEL` (default `INFO`)
+- `EPAPER_FULL_REFRESH_INTERVAL` (default `4`, minimum `1`)
+- `EPAPER_SLEEP_BETWEEN_UPDATES` (default `false`; set `true` for lower idle power, slower turns)
 
 ## Web Endpoints
 
@@ -68,6 +107,7 @@ Environment variables:
 
 - Uploading a new `.txt` file overwrites `data/book.txt`, resets page to `0`, saves state, and renders the first page.
 - If hardware drivers are unavailable, the app still runs and writes a render preview to `data/last_render.png`.
+- Page turns prefer partial/fast updates when the driver exposes them, and trigger a full refresh every `EPAPER_FULL_REFRESH_INTERVAL` turns to limit ghosting.
 
 ## Troubleshooting
 
@@ -112,5 +152,6 @@ Look for messages like:
 
 - `Paginating book (...)`
 - `Pagination complete: ...`
-- `Sending frame to ePaper display.`
-- `ePaper refresh complete.`
+- `Sending full refresh frame to ePaper display.`
+- `Sending partial refresh frame to ePaper display.`
+- `ePaper update complete.`

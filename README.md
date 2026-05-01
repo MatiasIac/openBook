@@ -1,5 +1,7 @@
 # Raspberry Pi ePaper Reader
 
+![Simple eReader](./images/IMG_6715.jpeg)
+
 Simple Python app for a Raspberry Pi Zero 2 W with a WeAct 4.2" ePaper display (Waveshare-compatible `epd4in2_V2` driver).
 
 ## Features
